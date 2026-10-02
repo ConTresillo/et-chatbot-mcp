@@ -32,8 +32,11 @@ export function ToolInvocation({
 }: ToolInvocationProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const runningStates = new Set(["call", "input-streaming", "input-available", "approval-requested", "approval-responded"]);
+  const isRunning = runningStates.has(state);
+
   const getStatusIcon = () => {
-    if (state === "call") {
+    if (isRunning) {
       if (isLatestMessage && status !== "ready") {
         return <Loader2 className="animate-spin h-3.5 w-3.5 text-primary/70" />;
       }
@@ -43,7 +46,7 @@ export function ToolInvocation({
   };
 
   const getStatusClass = () => {
-    if (state === "call") {
+    if (isRunning) {
       if (isLatestMessage && status !== "ready") {
         return "text-primary";
       }
@@ -94,7 +97,7 @@ export function ToolInvocation({
           <span className="text-foreground font-semibold tracking-tight">{toolName}</span>
           <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
           <span className={cn("font-medium", getStatusClass())}>
-            {state === "call" ? (isLatestMessage && status !== "ready" ? "Running" : "Waiting") : "Completed"}
+            {isRunning ? (isLatestMessage && status !== "ready" ? "Running" : "Waiting") : "Completed"}
           </span>
         </div>
         <div className="flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">

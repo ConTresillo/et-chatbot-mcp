@@ -9,12 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const providers = [
   {
-    value: "openai",
-    label: "OpenAI (GPT-4o)",
-  },
-  {
-    value: "anthropic",
-    label: "Anthropic (Claude 3.5 Sonnet)",
+    value: "openai-compatible",
+    label: "OpenAI-compatible",
   },
 ]
 

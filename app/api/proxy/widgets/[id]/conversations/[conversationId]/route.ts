@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { resolveUpstreamOrigin } from "@/lib/proxy-origin"
 
 export const runtime = "edge"
 
@@ -12,7 +13,7 @@ export async function DELETE(
     const conversationId = unwrappedParams.conversationId
     
     // Forward the request to the remote API
-    const response = await fetch(`https://mcpwrapper.app/api/widgets/${id}/conversations/${conversationId}`, {
+    const response = await fetch(`${resolveUpstreamOrigin(req)}/api/widgets/${id}/conversations/${conversationId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

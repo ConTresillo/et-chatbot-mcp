@@ -16,6 +16,8 @@ interface WidgetPreviewProps {
     widgetPosition: string
     modelProvider: string
     model: string
+    baseUrl?: string
+    apiKey?: string
     mcpEnabled: boolean
     mcpServers: Array<{
       name: string
@@ -187,22 +189,8 @@ export const WidgetPreview = ({ settings }: WidgetPreviewProps) => {
 
             {/* Model Info */}
             <div className="px-3 py-1 bg-zinc-50 dark:bg-zinc-800/50 text-xs text-zinc-500 text-center">
-              Powered by {settings.modelProvider === "openai" ? "OpenAI" : "Anthropic"} •{" "}
-              {settings.modelProvider === "openai"
-                ? settings.model === "gpt-4o"
-                  ? "GPT-4o"
-                  : settings.model === "gpt-4.1"
-                    ? "GPT-4.1"
-                    : settings.model === "gpt-4.1-mini"
-                      ? "GPT-4.1-mini"
-                      : "GPT-4o"
-                : settings.model === "claude-3-7-sonnet-20250219"
-                  ? "Claude 3.7 Sonnet"
-                  : settings.model === "claude-3-5-sonnet-20241022"
-                    ? "Claude 3.5 Sonnet"
-                    : settings.model === "claude-3-5-haiku-20241022"
-                      ? "Claude 3.5 Haiku"
-                      : "Claude"}
+              Powered by OpenAI-compatible • {settings.model || "gpt-4o"}
+              {settings.baseUrl ? ` • ${settings.baseUrl}` : ""}
             </div>
           </div>
         )}

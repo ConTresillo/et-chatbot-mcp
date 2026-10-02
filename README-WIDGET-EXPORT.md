@@ -97,7 +97,7 @@ The widget can be configured using HTML attributes:
 | `name` | Display name for the chat widget | "Chat Assistant" |
 | `description` | Description shown in the widget | Optional |
 | `system-prompt` | System prompt for the AI model | Optional |
-| `default-provider` | Default AI provider to use | "openai" |
+| `default-provider` | Default provider identifier (legacy; backend uses OpenAI-compatible config) | "openai-compatible" |
 | `position` | Widget position on screen | "bottom-right" |
 | `size` | Widget size | "md" |
 | `mcp-servers` | JSON string of MCP servers configuration | Optional |

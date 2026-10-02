@@ -1,103 +1,88 @@
 "use client"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Cpu, Bot } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Cpu, Bot, KeyRound, Globe } from "lucide-react"
 
 interface ModelSettingsProps {
   settings: {
     modelProvider: string
     model: string
+    baseUrl?: string
+    apiKey?: string
   }
   onSettingsChange: (
     settings: Partial<{
       modelProvider: string
       model: string
+      baseUrl: string
+      apiKey: string
     }>,
   ) => void
 }
 
 export const ModelSettings = ({ settings, onSettingsChange }: ModelSettingsProps) => {
-  // Define available models based on the selected provider
-  const getAvailableModels = () => {
-    if (settings.modelProvider === "openai") {
-      return [
-        { value: "gpt-4o", label: "GPT-4o" },
-        { value: "gpt-4.1", label: "GPT-4.1" },
-        { value: "gpt-4.1-mini", label: "GPT-4.1-mini" },
-      ]
-    } else if (settings.modelProvider === "anthropic") {
-      return [
-        { value: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet (20250219)" },
-        { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet (20241022)" },
-        { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku (20241022)" },
-      ]
-    }
-    return []
-  }
-
-  // Update model when provider changes
-  const handleProviderChange = (provider: string) => {
-    const newSettings: Partial<{ modelProvider: string; model: string }> = {
-      modelProvider: provider,
-    }
-
-    // Set default model for the selected provider
-    if (provider === "openai") {
-      newSettings.model = "gpt-4o"
-    } else if (provider === "anthropic") {
-      newSettings.model = "claude-3-opus"
-    }
-
-    onSettingsChange(newSettings)
-  }
-
   return (
     <div className="group relative overflow-hidden w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
       <div className="p-4 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <div>
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Model Settings</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Choose the AI model for your chat widget</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Configure the OpenAI-compatible model provider</p>
           </div>
         </div>
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Model Provider */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-zinc-500" />
-            <span className="text-sm text-zinc-500">Model Provider</span>
+            <span className="text-sm text-zinc-500">Provider</span>
           </div>
-          <Select value={settings.modelProvider} onValueChange={handleProviderChange}>
-            <SelectTrigger className="w-[140px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="openai">OpenAI</SelectItem>
-              <SelectItem value="anthropic">Anthropic</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            value="openai-compatible"
+            readOnly
+            className="w-[220px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"
+          />
         </div>
 
-        {/* Model */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-zinc-500" />
+            <span className="text-sm text-zinc-500">Base URL</span>
+          </div>
+          <Input
+            value={settings.baseUrl || ""}
+            onChange={(e) => onSettingsChange({ baseUrl: e.target.value })}
+            placeholder="https://api.openai.com/v1"
+            className="w-[220px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"
+          />
+        </div>
+
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Bot className="w-4 h-4 text-zinc-500" />
             <span className="text-sm text-zinc-500">Model</span>
           </div>
-          <Select value={settings.model} onValueChange={(value) => onSettingsChange({ model: value })}>
-            <SelectTrigger className="w-[140px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {getAvailableModels().map((model) => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            value={settings.model}
+            onChange={(e) => onSettingsChange({ model: e.target.value })}
+            placeholder="gpt-4o"
+            className="w-[220px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-zinc-500" />
+            <span className="text-sm text-zinc-500">API Key</span>
+          </div>
+          <Input
+            type="password"
+            value={settings.apiKey || ""}
+            onChange={(e) => onSettingsChange({ apiKey: e.target.value })}
+            placeholder="Leave blank to use env / keep existing"
+            className="w-[220px] h-8 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700"
+          />
         </div>
       </div>
     </div>

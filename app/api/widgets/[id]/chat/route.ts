@@ -2,9 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { widgets, widgetConversations, widgetMessages } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
-import { openai } from "@ai-sdk/openai"
-import { anthropic } from "@ai-sdk/anthropic"
-import { streamText } from "ai"
+import { streamText, stepCountIs } from "ai"
+import { createOpenAICompatibleModel } from "@/lib/openai-compatible-provider"
+import { extractMessageText, toModelMessages } from "@/lib/chat-messages"
 import { initializeMCPClients } from "@/lib/mcp-client"
 import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
@@ -15,7 +15,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const unwrappedParams = await params;
     const widgetId = Number.parseInt(unwrappedParams.id)
-    const { messages } = await request.json()
+    const body = await request.json()
+    const messages = Array.isArray(body?.messages) ? body.messages : null
+
+    if (!messages || messages.length === 0) {
+      return NextResponse.json({ error: "messages is required" }, { status: 400 })
+    }
 
     // Get the widget configuration
     const widget = await db.query.widgets.findFirst({
@@ -68,8 +73,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Initialize MCP clients if the widget has MCP servers
-    let mcpTools = {}
-    let mcpManager = null
+    let mcpTools: Record<string, any> = {}
+    let mcpManager: Awaited<ReturnType<typeof initializeMCPClients>> | null = null
 
     if (widget.mcpServers && widget.mcpServers.length > 0) {
       try {
@@ -87,50 +92,52 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     try {
-      // Select the appropriate model based on provider
-      let model
-      const provider = widget.defaultProvider || "openai"
+      const model = createOpenAICompatibleModel({
+        model: widget.model,
+        baseUrl: widget.baseUrl,
+        apiKey: widget.apiKey,
+      })
 
-      switch (provider) {
-        case "anthropic":
-          model = anthropic("claude-3-5-sonnet-latest")
-          break
-        case "openai":
-        default:
-          model = openai("gpt-4o")
-          break
-      }
-
-      // Prepare system message if provided
-      const systemMessage = widget.systemPrompt ? [{ role: "system", content: widget.systemPrompt }] : []
+      // AI SDK v7 requires the system prompt via `instructions`, not a
+      // system-role entry inside `messages`.
+      const modelMessages = await toModelMessages(messages)
 
       // Store user message in the database
       const userMessage = messages[messages.length - 1]
-      await db.insert(widgetMessages).values({
-        conversationId: conversation.id,
-        role: userMessage.role,
-        content: userMessage.content,
-      })
+      const userText = extractMessageText(userMessage)
+      if (userText.trim()) {
+        await db.insert(widgetMessages).values({
+          conversationId: conversation.id,
+          role: userMessage.role,
+          content: userText,
+        })
+      }
 
       // Track if the response has completed
       let responseCompleted = false
-      
+
       // Stream the response
       const result = streamText({
         model,
-        messages: [...systemMessage, ...messages],
+        messages: modelMessages,
+        instructions: widget.systemPrompt || undefined,
         // Pass MCP tools directly to streamText
         tools: Object.keys(mcpTools).length > 0 ? mcpTools : undefined,
-        maxSteps: 20, // Allow multiple tool invocation steps
+        stopWhen: stepCountIs(20), // Allow multiple tool invocation steps
         onFinish: async (response) => {
           responseCompleted = true
-          
-          // Store assistant message in the database
-          await db.insert(widgetMessages).values({
-            conversationId: conversation.id,
-            role: "assistant",
-            content: response.text,
-          })
+
+          // Persisting must never reject: an unhandled rejection here would
+          // take down the server process mid-stream.
+          try {
+            await db.insert(widgetMessages).values({
+              conversationId: conversation.id,
+              role: "assistant",
+              content: response.text,
+            })
+          } catch (error) {
+            console.error("Failed to store assistant message:", error)
+          }
 
           // Clean up MCP clients only after response is complete
           if (mcpManager) {
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             }
           }
         },
-        onError: (error) => {
+        onError: ({ error }) => {
           responseCompleted = true
           console.error("Stream error:", error)
         },
@@ -163,12 +170,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Return the response without consuming the stream
       // This allows the stream to be processed by the client
-      return result.toDataStreamResponse({
+      return result.toUIMessageStreamResponse({
         sendReasoning: true,
-        getErrorMessage: (error) => {
-          console.error("Response error:", error)
-          return "An error occurred during the conversation."
-        }
       })
     } finally {
       // We don't need to clean up MCP clients here

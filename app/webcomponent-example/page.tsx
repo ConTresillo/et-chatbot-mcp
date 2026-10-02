@@ -91,7 +91,7 @@ export default function WebComponentExamplePage() {
             <li><strong>name</strong>: (Optional) The name of the chat widget</li>
             <li><strong>description</strong>: (Optional) A short description for the chat widget</li>
             <li><strong>system-prompt</strong>: (Optional) Custom system prompt for the AI</li>
-            <li><strong>default-provider</strong>: (Optional) Default AI provider</li>
+            <li><strong>default-provider</strong>: (Optional, legacy) Default provider identifier</li>
             <li><strong>position</strong>: (Optional) Position of the widget - "bottom-right" or "bottom-left"</li>
             <li><strong>size</strong>: (Optional) Size of the widget - "sm", "md", "lg", "xl", or "full"</li>
             <li><strong>mcp-servers</strong>: (Optional) JSON string of MCP servers configuration</li>

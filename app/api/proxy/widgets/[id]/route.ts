@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { resolveUpstreamOrigin } from "@/lib/proxy-origin"
 
 export const runtime = "edge"
 
@@ -11,7 +12,7 @@ export async function GET(
     const id = unwrappedParams.id
     
     // Forward the request to the remote API
-    const response = await fetch(`https://mcpwrapper.app/api/widgets/${id}`, {
+    const response = await fetch(`${resolveUpstreamOrigin(req)}/api/widgets/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

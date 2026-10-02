@@ -28,6 +28,8 @@ interface WidgetSettings {
   // Model settings
   modelProvider: string
   model: string
+  baseUrl: string
+  apiKey: string
 
   // MCP settings
   mcpEnabled: boolean
@@ -60,8 +62,10 @@ export default function ChatWidgetBuilder({ widgetId }: ChatWidgetBuilderProps) 
     widgetPosition: "bottom-right",
 
     // Model settings
-    modelProvider: "openai",
+    modelProvider: "openai-compatible",
     model: "gpt-4o",
+    baseUrl: "",
+    apiKey: "",
 
     // MCP settings
     mcpEnabled: false,
@@ -110,8 +114,10 @@ export default function ChatWidgetBuilder({ widgetId }: ChatWidgetBuilderProps) 
           widgetSize: mapWidgetSize(data.size),
           widgetPosition: data.position || "bottom-right",
           
-          modelProvider: data.defaultProvider || "openai",
-          model: mapModelName(data.defaultProvider, data.model),
+          modelProvider: "openai-compatible",
+          model: data.model || "gpt-4o",
+          baseUrl: data.baseUrl || "",
+          apiKey: "",
           
           mcpEnabled: data.mcpServers && data.mcpServers.length > 0,
           mcpServers: data.mcpServers ? data.mcpServers.map((server: any) => ({
@@ -152,14 +158,6 @@ export default function ChatWidgetBuilder({ widgetId }: ChatWidgetBuilderProps) 
     }
   }
 
-  // Helper function to map model name
-  function mapModelName(provider: string | undefined, model: string | undefined): string {
-    if (provider === "anthropic") {
-      return model || "claude-3-opus"
-    }
-    return model || "gpt-4o"
-  }
-
   // Function to save widget
   async function handleSave() {
     setSaving(true)
@@ -170,10 +168,12 @@ export default function ChatWidgetBuilder({ widgetId }: ChatWidgetBuilderProps) 
         name: settings.projectName,
         description: settings.chatDescription,
         systemPrompt: settings.systemPrompt,
-        defaultProvider: settings.modelProvider,
+        defaultProvider: "openai-compatible",
         position: settings.widgetPosition,
         size: mapSizeToAPI(settings.widgetSize),
         model: settings.model,
+        baseUrl: settings.baseUrl,
+        ...(isNew || settings.apiKey ? { apiKey: settings.apiKey } : {}),
         mcpServers: settings.mcpEnabled ? settings.mcpServers.map(server => ({
           name: server.name,
           type: server.transportType,

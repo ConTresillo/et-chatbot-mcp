@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { resolveUpstreamOrigin } from "@/lib/proxy-origin"
 
 export const runtime = "edge"
 
@@ -12,7 +13,7 @@ export async function POST(
     const body = await req.json()
     
     // Forward the request to the remote API
-    const response = await fetch(`https://mcpwrapper.app/api/widgets/${id}/chat`, {
+    const response = await fetch(`${resolveUpstreamOrigin(req)}/api/widgets/${id}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

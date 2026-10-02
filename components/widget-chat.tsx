@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { useChat } from "ai/react"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport, getToolName, isToolUIPart } from "ai"
 import { Loader2, Maximize, X, PlusCircle, History, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatInput, ChatInputTextArea, ChatInputSubmit, ChatInputMic } from "@/components/chat-input"
@@ -155,10 +156,24 @@ export function WidgetChat({ widgetId, initialConfig }: WidgetChatProps) {
     fetchWidgetConfig()
   }, [widgetId])
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, status, setMessages } = useChat({
-    api: widgetId ? `/api/proxy/widgets/${widgetId}/chat` : `/api/proxy/chat`,
+  const [input, setInput] = useState("")
+  const { messages, status, setMessages, sendMessage } = useChat({
     id: widgetId ? `widget-${widgetId}` : 'default-widget',
+    transport: new DefaultChatTransport({
+      api: widgetId ? `/api/proxy/widgets/${widgetId}/chat` : `/api/proxy/chat`,
+    }),
   })
+
+  const isLoading = status === "submitted" || status === "streaming"
+  const handleInputChange: React.ChangeEventHandler<HTMLTextAreaElement> = (event) => {
+    setInput(event.target.value)
+  }
+  const handleSubmit = () => {
+    const text = input.trim()
+    if (!text || isLoading) return
+    sendMessage({ text })
+    setInput("")
+  }
 
   // Fetch conversations when history is opened
   useEffect(() => {
@@ -197,7 +212,7 @@ export function WidgetChat({ widgetId, initialConfig }: WidgetChatProps) {
         const formattedMessages = messages.map((message: Message) => ({
           id: message.id.toString(),
           role: message.role,
-          content: message.content,
+          parts: [{ type: "text", text: message.content }],
         }))
         
         setMessages(formattedMessages)
@@ -266,36 +281,33 @@ export function WidgetChat({ widgetId, initialConfig }: WidgetChatProps) {
               }`}
             >
               {message.parts?.map((part, i) => {
-                switch (part.type) {
-                  case "text":
-                    return (
-                      <div key={`message-${message.id}-part-${i}`}>
-                        <Markdown>{part.text}</Markdown>
-                      </div>
-                    );
-                  case "tool-invocation":
-                    const { toolName, state, args } = part.toolInvocation;
-                    // Handle result safely, ensuring it exists before accessing
-                    const result = part.toolInvocation && 
-                                  'result' in part.toolInvocation ? 
-                                  part.toolInvocation.result : 
-                                  undefined;
-                    
-                    return (
-                      <ToolInvocation
-                        key={`message-${message.id}-part-${i}`}
-                        toolName={toolName}
-                        state={state}
-                        args={args}
-                        result={result}
-                        isLatestMessage={index === messages.length - 1}
-                        status={status}
-                      />
-                    );
-                  default:
-                    return null;
+                if (part.type === "text") {
+                  return (
+                    <div key={`message-${message.id}-part-${i}`}>
+                      <Markdown>{part.text}</Markdown>
+                    </div>
+                  );
                 }
-              }) || <Markdown>{message.content}</Markdown>}
+
+                if (isToolUIPart(part)) {
+                  const toolName = getToolName(part);
+                  const result = "output" in part ? part.output : "errorText" in part ? part.errorText : undefined;
+
+                  return (
+                    <ToolInvocation
+                      key={`message-${message.id}-part-${i}`}
+                      toolName={toolName}
+                      state={part.state}
+                      args={"input" in part ? part.input : undefined}
+                      result={result}
+                      isLatestMessage={index === messages.length - 1}
+                      status={status}
+                    />
+                  );
+                }
+
+                return null;
+              })}
             </div>
           </div>
         ))
@@ -376,7 +388,7 @@ export function WidgetChat({ widgetId, initialConfig }: WidgetChatProps) {
       onChange={handleInputChange}
       onSubmit={handleSubmit}
       loading={isLoading}
-      setInputValue={(value) => handleInputChange({ target: { value } } as React.ChangeEvent<HTMLTextAreaElement>)}
+      setInputValue={setInput}
     >
       <div className="flex w-full items-end gap-2">
         <ChatInputTextArea 

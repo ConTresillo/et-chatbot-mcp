@@ -76,7 +76,7 @@ The fullscreen chat component can be configured using HTML attributes:
 | `name` | Display name for the chat | "Chat Assistant" |
 | `description` | Description shown in the header | Optional |
 | `system-prompt` | System prompt for the AI model | Optional |
-| `default-provider` | Default AI provider to use | "openai" |
+| `default-provider` | Default provider identifier (legacy; backend uses OpenAI-compatible config) | "openai-compatible" |
 | `mcp-servers` | JSON string of MCP servers configuration | Optional |
 
 ## Styling the Fullscreen Chat

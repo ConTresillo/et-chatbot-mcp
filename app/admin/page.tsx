@@ -91,7 +91,7 @@ export default function AdminPage() {
   }
 
   function getProviderBadgeColor(provider: string) {
-    return provider === 'openai' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800';
+    return 'bg-emerald-100 text-emerald-800';
   }
 
   return (
@@ -146,7 +146,7 @@ export default function AdminPage() {
                 </CardTitle>
                 <CardDescription className="flex flex-col line-clamp-2 min-h-[40px]">
                   <Badge variant="outline" className={`mr-2 ${getProviderBadgeColor(widget.defaultProvider)}`}>
-                      {widget.defaultProvider === 'openai' ? 'OpenAI' : 'Anthropic'}
+                      OpenAI-compatible
                   </Badge>
                   {widget.description || "No description provided"}
                 </CardDescription>

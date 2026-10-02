@@ -24,8 +24,8 @@ export async function GET(
       })
     }
 
-    // Get the base URL for the script resource
-    const baseUrl = process.env.NEXT_PUBLIC_URL || "https://mcpwrapper.app"
+// Get the base URL for the script resource
+const baseUrl = (process.env.NEXT_PUBLIC_URL || request.nextUrl.origin).replace(/\/+$/, "")
 
 
     // Create a JavaScript loader that automatically injects and initializes the widget

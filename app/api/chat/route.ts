@@ -1,16 +1,24 @@
-import { openai } from "@ai-sdk/openai"
-import { anthropic } from "@ai-sdk/anthropic"
 import { streamText } from "ai"
+import { createOpenAICompatibleModel } from "@/lib/openai-compatible-provider"
 import { initializeMCPClients, type MCPServerConfig } from "@/lib/mcp-client"
+import { chatRequestSchema } from "@/lib/validation/widget"
+import { toModelMessages } from "@/lib/chat-messages"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages, provider = "openai", mcpServers = [] } = await req.json()
+  const body = await req.json()
+  const parsed = chatRequestSchema.safeParse(body)
+
+  if (!parsed.success) {
+    return Response.json({ error: "Invalid chat request", details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { messages, model: requestedModel, baseUrl, apiKey, mcpServers = [] } = parsed.data
 
   // Initialize MCP clients if provided
-  let mcpTools = {}
-  let mcpManager = null
+  let mcpTools: Record<string, any> = {}
+  let mcpManager: Awaited<ReturnType<typeof initializeMCPClients>> | null = null
 
   if (mcpServers && mcpServers.length > 0) {
     try {
@@ -22,27 +30,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Select the appropriate model based on provider
-    let model
+    const model = createOpenAICompatibleModel({ model: requestedModel, baseUrl, apiKey })
 
-    switch (provider) {
-      case "anthropic":
-        model = anthropic("claude-3-5-sonnet-latest")
-        break
-      case "openai":
-      default:
-        model = openai("gpt-4o")
-        break
-    }
-
-    // Stream the response
     const result = streamText({
       model,
-      messages,
+      messages: await toModelMessages(messages),
       tools: Object.keys(mcpTools).length > 0 ? mcpTools : undefined,
     })
 
-    return result.toDataStreamResponse()
+    return result.toUIMessageStreamResponse()
   } finally {
     // Clean up MCP clients
     if (mcpManager) {

@@ -22,7 +22,7 @@ export async function GET(
     }
 
     // Get the base URL for the embed script
-    const baseUrl = process.env.NEXT_PUBLIC_URL || "https://mcpwrapper.app"
+    const baseUrl = (process.env.NEXT_PUBLIC_URL || request.nextUrl.origin).replace(/\/+$/, "")
 
     // Create embed codes - both one-line and web component versions
     const oneLineEmbed = `<script src="${baseUrl}/api/widgets/${widgetId}/loader.js" async></script>`

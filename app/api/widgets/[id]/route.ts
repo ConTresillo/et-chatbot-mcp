@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { widgets, widgetMcpServers, widgetConversations } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { widgetUpdateSchema } from "@/lib/validation/widget"
 
 // GET /api/widgets/[id] - Get a specific widget
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Widget not found" }, { status: 404 })
     }
 
-    return NextResponse.json(widget)
+    const { apiKey, ...safeWidget } = widget
+    return NextResponse.json({ ...safeWidget, hasApiKey: Boolean(apiKey) })
   } catch (error) {
     console.error("Failed to get widget:", error)
     return NextResponse.json({ error: "Failed to get widget" }, { status: 500 })
@@ -33,14 +35,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const unwrappedParams = await params;
     const id = Number.parseInt(unwrappedParams.id)
     const body = await request.json()
+    const parsed = widgetUpdateSchema.safeParse(body)
 
-    // Extract widget data and MCP servers
-    const { mcpServers, ...widgetData } = body
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid widget configuration", details: parsed.error.flatten() }, { status: 400 })
+    }
 
-    // Update the widget
+    const { mcpServers, apiKey, ...widgetData } = parsed.data
+
+    const updateData: Partial<typeof widgets.$inferInsert> = {}
+    for (const field of ["name", "description", "systemPrompt", "defaultProvider", "position", "size", "model", "baseUrl"] as const) {
+      const value = widgetData[field]
+      if (value !== undefined) {
+        ;(updateData as Record<string, string | null>)[field] = value === "" ? null : value
+      }
+    }
+
+    if (apiKey !== undefined && apiKey !== null && apiKey.trim() !== "") {
+      updateData.apiKey = apiKey.trim()
+    }
+
+    updateData.updatedAt = new Date()
+
     await db
       .update(widgets)
-      .set({ ...widgetData, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(widgets.id, id))
 
     // Handle MCP servers if provided
@@ -74,7 +93,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       },
     })
 
-    return NextResponse.json(updatedWidget)
+    if (!updatedWidget) {
+      return NextResponse.json({ error: "Widget not found" }, { status: 404 })
+    }
+
+    const { apiKey: updatedApiKey, ...safeUpdatedWidget } = updatedWidget
+    return NextResponse.json({ ...safeUpdatedWidget, hasApiKey: Boolean(updatedApiKey) })
   } catch (error) {
     console.error("Failed to update widget:", error)
     return NextResponse.json({ error: "Failed to update widget" }, { status: 500 })

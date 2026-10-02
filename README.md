@@ -40,7 +40,7 @@ A lightweight self-hosted platform for hosting and configuring MCP-enabled chat 
 - **Customizable Widgets**: Create chat widgets with custom positions, sizes, and AI providers.
 - **Full Screen Chat**: Integrate a full screen chat experience that fills its parent container.
 - **MCP Tool Support**: Connect to MCP servers to give your chat widgets access to powerful tools like file access, API integrations, and more.
-- **Multiple Providers**: Choose between OpenAI and Anthropic models for each widget.
+- **OpenAI-compatible Providers**: Use OpenAI, LM Studio, Ollama, OpenRouter, vLLM, or other compatible endpoints for each widget.
 - **Conversation History**: Chat history is automatically saved for each session. Users can continue conversations where they left off.
 - **Easy Integration**: Simple embed code to add widgets to any website or application.
 - **Responsive Design**: Chat widgets work seamlessly on desktop and mobile devices.
@@ -49,8 +49,7 @@ A lightweight self-hosted platform for hosting and configuring MCP-enabled chat 
 
 - Node.js 18.x or later
 - PostgreSQL database
-- OpenAI API key (for OpenAI provider)
-- Anthropic API key (for Anthropic provider)
+- OpenAI-compatible API key (for hosted providers; optional for local endpoints like LM Studio/Ollama)
 - MCP server endpoints (optional, for tool capabilities)
 
 ## 🚀 Getting Started
@@ -76,8 +75,9 @@ A lightweight self-hosted platform for hosting and configuring MCP-enabled chat 
    Create a `.env.local` file in the root directory with the following variables:
    ```
    DATABASE_URL="postgresql://user:password@localhost:5432/chatmcp"
-   OPENAI_API_KEY="your-openai-api-key"
-   ANTHROPIC_API_KEY="your-anthropic-api-key"
+   OPENAI_API_KEY="your-openai-compatible-api-key"
+   OPENAI_COMPATIBLE_BASE_URL="https://api.openai.com/v1"
+   OPENAI_COMPATIBLE_MODEL="gpt-4o"
    NEXTAUTH_SECRET="your-auth-secret"
    NEXTAUTH_URL="http://localhost:3000"
    ```
@@ -122,10 +122,32 @@ pnpm db:studio
 3. Configure the following settings:
    - Name: A descriptive name for your widget
    - Description: (Optional) A brief description
-   - Default Provider: Choose between OpenAI and Anthropic
+   - Default Provider: OpenAI-compatible (configured by Base URL/model/API key)
    - Position: Select where the widget should appear on the page
    - Size: Choose the size of the chat widget
    - System Prompt: Define the behavior and capabilities of your assistant
+
+### OpenAI-Compatible Provider Configuration
+
+The chat backend now uses a single OpenAI-compatible provider. Widgets can override the provider with `model`, `baseUrl`, and `apiKey`; otherwise the server falls back to environment variables.
+
+Environment variables:
+
+```bash
+OPENAI_API_KEY="..."                         # or OPENAI_COMPATIBLE_API_KEY
+OPENAI_COMPATIBLE_BASE_URL="https://api.openai.com/v1"
+OPENAI_COMPATIBLE_MODEL="gpt-4o"
+```
+
+Examples:
+
+| Provider | Base URL | Model | API Key |
+| --- | --- | --- | --- |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` | required |
+| LM Studio | `http://localhost:1234/v1` | your loaded model | optional/dummy |
+| Ollama | `http://localhost:11434/v1` | `llama3.1` | optional/dummy |
+| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-4o` | required |
+| vLLM | `http://localhost:8000/v1` | served model name | optional/dummy or required |
 
 ### MCP Server Configuration
 

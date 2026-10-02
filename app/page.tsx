@@ -103,7 +103,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-lg mb-2">Multiple Providers</h3>
               <p className="text-sm text-muted-foreground">
-                Choose between OpenAI and Anthropic models for each widget.
+                Use any OpenAI-compatible model provider for each widget.
               </p>
             </div>
             
